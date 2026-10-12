@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Slate: keep the score</title>
+  <meta name="description" content="A phone scoreboard for a table of people. No account. The owner link is the only key." />
+  <meta name="theme-color" content="#141a22" />
+  <meta name="color-scheme" content="dark" />
+  <link rel="icon" type="image/svg+xml" href="/static/brand/logo.svg" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="page">
+    <header class="nav">
+      <a class="nav-brand" href="/" aria-label="Slate home">
+        <img src="/static/brand/logo.svg" width="28" height="28" alt="" />
+        <span>Slate</span>
+      </a>
+      <details class="nav-menu">
+        <summary class="btn ghost sm nav-menu-btn" aria-label="Menu">Menu</summary>
+        <div class="nav-menu-panel">
+          <a href="#how">How</a>
+          <a href="#limits">Limits</a>
+        </div>
+      </details>
+    </header>
+    <main id="main">
+      <p class="eyebrow">A table of people. No account.</p>
+      <h1>Keep the score.</h1>
+      <p class="lede">Name the slate, add the players, pass the board around. The owner link is the only key. Bookmark it.</p>
+      <form class="card" action="/api/slates" method="post">
+        <label class="field">
+          <span>Slate name</span>
+          <input name="name" type="text" maxlength="40" required autocomplete="off" placeholder="Thursday cards" value="<!--NAME-->" />
+        </label>
+        <label class="check">
+          <input type="checkbox" name="low_wins" value="1" <!--LOW--> />
+          <span>Lowest score leads</span>
+        </label>
+        <div id="players"><!--PLAYERS--></div>
+        <button type="button" class="btn sm" id="add-player">Add player</button>
+        <p class="hint">Two players minimum. Empty boxes are ignored. The form works with JavaScript off.</p>
+        <button type="submit" class="btn primary lg">Open the slate</button>
+        <p class="status<!--STATUS_CLASS-->" role="status"><!--STATUS--></p>
+      </form>
+      <section id="how" class="block">
+        <h2>How</h2>
+        <div class="steps">
+          <div class="step"><span class="badge">1</span><p>You get an owner page. That URL is the key. Anyone with it can add rounds.</p></div>
+          <div class="step"><span class="badge">2</span><p>The board link has no key. Leave it open on the table. It cannot edit.</p></div>
+          <div class="step"><span class="badge">3</span><p>Each round is one whole number per player. Totals update on the next load. The board refreshes itself.</p></div>
+        </div>
+      </section>
+      <section id="limits" class="block">
+        <h2>Limits</h2>
+        <ul class="plain">
+          <li>12 players. 200 rounds. Scores from -999 to 9999.</li>
+          <li>A slate lasts 30 days, then it is gone.</li>
+          <li>8 new slates per IP per hour.</li>
+          <li>No accounts, no recovery. Lose the owner link and the board stays read only.</li>
+        </ul>
+      </section>
+    </main>
+    <footer class="foot"><p>slate · holy-hermes</p></footer>
+  </div>
+  <script src="/static/home.js"></script>
+</body>
+</html>
