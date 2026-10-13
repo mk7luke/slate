@@ -2,7 +2,7 @@
 
 Phone scoreboard for a table of people. No account. The owner link is the only key.
 
-Not public yet. Local: http://127.0.0.1:8882
+Live: https://slate.holyx.cc
 
 Create a slate, add rounds, fix or undo the last one, rename players, add a late player. The board link cannot edit. Table view is the one to prop up. It polls for new rounds.
 

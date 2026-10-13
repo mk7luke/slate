@@ -476,21 +476,84 @@ def _leader_html(slate: dict[str, Any]) -> str:
     )
 
 
-def _rows_html(slate: dict[str, Any]) -> str:
+def _rows_html(slate: dict[str, Any], *, table: bool = False) -> str:
     bits = []
-    for p in slate["players"]:
+    for place, p in enumerate(slate["players"], start=1):
         mark = MARKS[int(p["position"]) % len(MARKS)]
         lead = " lead" if p.get("lead") else ""
         bar = ""
         if p.get("played") and not any(int(x["total"]) < 0 for x in slate["players"]):
             bar = f'<div class="bar"><span style="width:{int(p["bar"])}%"></span></div>'
+        label = "leader" if p.get("lead") else f"place {place}"
+        spark = _sparkline_html(slate, int(p["id"])) if table else ""
         bits.append(
             f'<div class="row{lead}" style="--mark:{mark}">'
-            f'<div><strong>{html.escape(p["name"])}</strong><em>total</em>{bar}</div>'
+            f'<div><strong>{html.escape(p["name"])}</strong><em>{html.escape(label)}</em>{bar}{spark}</div>'
             f'<div class="pts">{int(p["total"])}</div>'
             "</div>"
         )
     return f'<div class="rows">{"".join(bits)}</div>'
+
+
+def _round_totals(slate: dict[str, Any]) -> dict[int, list[int]]:
+    history = {int(p["id"]): [] for p in slate["players"]}
+    totals = {int(p["id"]): 0 for p in slate["players"]}
+    for rnd in reversed(slate["rounds"]):
+        by_id = {int(s["player_id"]): int(s["points"]) for s in rnd["scores"]}
+        for pid in history:
+            totals[pid] += by_id.get(pid, 0)
+            history[pid].append(totals[pid])
+    return history
+
+
+def _sparkline_html(slate: dict[str, Any], player_id: int) -> str:
+    vals = _round_totals(slate).get(player_id, [])[-8:]
+    if len(vals) < 2:
+        return ""
+    lo, hi = min(vals), max(vals)
+    span = hi - lo or 1
+    dots = []
+    for value in vals:
+        pct = 100 - int(round(((value - lo) / span) * 100))
+        dots.append(f'<i style="--y:{pct}%"></i>')
+    return f'<div class="spark" aria-hidden="true">{"".join(dots)}</div>'
+
+
+def _last_round_html(slate: dict[str, Any]) -> str:
+    if not slate["rounds"]:
+        return '<p class="hint">No rounds yet. The table updates when the owner adds one.</p>'
+    rnd = slate["rounds"][0]
+    title = rnd["label"] or "Last round"
+    ordered = sorted(rnd["scores"], key=lambda s: int(s["points"]), reverse=not slate["low_wins"])
+    chips = []
+    for item in ordered:
+        pts = int(item["points"])
+        sign = "+" if pts > 0 else ""
+        chips.append(f'<span class="chip"><b>{html.escape(item["name"])}</b> {sign}{pts}</span>')
+    return f'<h2>{html.escape(title)}</h2><div class="chips">{"".join(chips)}</div>'
+
+
+def _table_stats_html(slate: dict[str, Any]) -> str:
+    mode = "Low wins" if slate["low_wins"] else "High wins"
+    return (
+        '<section class="table-stats" aria-label="Slate stats">'
+        f'<div><b>{int(slate["round_count"])}</b><span>rounds</span></div>'
+        f'<div><b>{len(slate["players"])}</b><span>players</span></div>'
+        f'<div><b>{html.escape(mode)}</b><span>mode</span></div>'
+        '</section>'
+    )
+
+
+def _table_panel_html(slate: dict[str, Any]) -> str:
+    return (
+        '<section class="table-panel">'
+        + _leader_html(slate)
+        + _table_stats_html(slate)
+        + '<section class="last-card">'
+        + _last_round_html(slate)
+        + '</section>'
+        + '</section>'
+    )
 
 
 def _rounds_html(slate: dict[str, Any]) -> str:
@@ -514,19 +577,32 @@ def _summary_text(slate: dict[str, Any]) -> str:
 
 def render_board(slate: dict[str, Any], table: bool = False) -> str:
     page = _shell("sheet.html")
-    main = (
-        f'<p class="eyebrow">{"Table" if table else "Board"}</p><h1>{html.escape(slate["name"])}</h1>'
-        + ("" if table else '<p class="lede">Read only. New rounds show up on their own.</p><button type="button" class="btn sm" id="big-type">Big type</button>')
-        + _leader_html(slate)
-        + _rows_html(slate)
-        + '<section class="card quiet"><h2>Text</h2><textarea class="summary" id="summary" readonly>'
-        + html.escape(_summary_text(slate))
-        + '</textarea><button type="button" class="btn sm" id="copy-summary">Copy text</button></section>'
-        + '<section class="card quiet"><h2>Last rounds</h2>'
-        + _rounds_html(slate)
-        + "</section>"
-        + '<noscript><p class="hint">JavaScript is off. Pull to refresh for new scores.</p></noscript>'
-    )
+    if table:
+        main = (
+            f'<p class="eyebrow">Live table</p><h1>{html.escape(slate["name"])}</h1>'
+            + '<p class="lede">Leave this open. It checks for new rounds and reloads itself.</p>'
+            + _table_panel_html(slate)
+            + _rows_html(slate, table=True)
+            + '<p class="live-note">Auto refreshes when a new round lands.</p>'
+            + '<section class="card quiet"><h2>Last rounds</h2>'
+            + _rounds_html(slate)
+            + "</section>"
+            + '<noscript><p class="hint">JavaScript is off. Pull to refresh for new scores.</p></noscript>'
+        )
+    else:
+        main = (
+            f'<p class="eyebrow">Board</p><h1>{html.escape(slate["name"])}</h1>'
+            + '<p class="lede">Read only. New rounds show up on their own.</p><button type="button" class="btn sm" id="big-type">Big type</button>'
+            + _leader_html(slate)
+            + _rows_html(slate)
+            + '<section class="card quiet"><h2>Text</h2><textarea class="summary" id="summary" readonly>'
+            + html.escape(_summary_text(slate))
+            + '</textarea><button type="button" class="btn sm" id="copy-summary">Copy text</button></section>'
+            + '<section class="card quiet"><h2>Last rounds</h2>'
+            + _rounds_html(slate)
+            + "</section>"
+            + '<noscript><p class="hint">JavaScript is off. Pull to refresh for new scores.</p></noscript>'
+        )
     klass = "table big" if table else ""
     attrs = f'class="{klass}" data-id="{html.escape(slate["id"], quote=True)}" data-rounds="{int(slate["round_count"])}"'
     page = page.replace("<!--TITLE-->", html.escape(slate["name"] + " · Slate"))
