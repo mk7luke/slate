@@ -261,6 +261,9 @@ textarea.summary {
   color: var(--text);
   font: 16px/1.4 var(--mono);
   padding: 10px 12px;
+  resize: none;
+  overflow: hidden;
+  field-sizing: content;
 }
 .url {
   font-family: var(--mono);

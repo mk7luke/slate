@@ -478,13 +478,19 @@ def _leader_html(slate: dict[str, Any]) -> str:
 
 def _rows_html(slate: dict[str, Any], *, table: bool = False) -> str:
     bits = []
+    started = any(p.get("played") for p in slate["players"])
     for place, p in enumerate(slate["players"], start=1):
         mark = MARKS[int(p["position"]) % len(MARKS)]
         lead = " lead" if p.get("lead") else ""
         bar = ""
         if p.get("played") and not any(int(x["total"]) < 0 for x in slate["players"]):
             bar = f'<div class="bar"><span style="width:{int(p["bar"])}%"></span></div>'
-        label = "leader" if p.get("lead") else f"place {place}"
+        if not started:
+            label = "waiting"
+        elif p.get("lead"):
+            label = "leader"
+        else:
+            label = f"place {place}"
         spark = _sparkline_html(slate, int(p["id"])) if table else ""
         bits.append(
             f'<div class="row{lead}" style="--mark:{mark}">'
@@ -595,7 +601,9 @@ def render_board(slate: dict[str, Any], table: bool = False) -> str:
             + '<p class="lede">Read only. New rounds show up on their own.</p><button type="button" class="btn sm" id="big-type">Big type</button>'
             + _leader_html(slate)
             + _rows_html(slate)
-            + '<section class="card quiet"><h2>Text</h2><textarea class="summary" id="summary" readonly>'
+            + '<section class="card quiet"><h2>Text</h2><textarea class="summary" id="summary" readonly rows="'
+            + str(max(4, _summary_text(slate).count("\n") + 2))
+            + '">'
             + html.escape(_summary_text(slate))
             + '</textarea><button type="button" class="btn sm" id="copy-summary">Copy text</button></section>'
             + '<section class="card quiet"><h2>Last rounds</h2>'

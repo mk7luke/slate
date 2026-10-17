@@ -39,6 +39,10 @@
 
   var copySum = document.getElementById("copy-summary");
   var summary = document.getElementById("summary");
+  if (summary) {
+    summary.style.height = "auto";
+    summary.style.height = (summary.scrollHeight + 8) + "px";
+  }
   if (copySum && summary && navigator.clipboard) {
     copySum.addEventListener("click", function () {
       navigator.clipboard.writeText(summary.value).then(function () {
